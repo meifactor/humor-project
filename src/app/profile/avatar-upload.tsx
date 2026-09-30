@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
 import { AVATAR_BUCKET } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -8,7 +9,19 @@ import { saveAvatarPath, type FormState } from "./actions";
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
-export function AvatarUpload({ userId }: { userId: string }) {
+type AvatarUploadProps = {
+  userId: string;
+  // Where to go after a successful upload (used during onboarding).
+  redirectTo?: string;
+  buttonLabel?: string;
+};
+
+export function AvatarUpload({
+  userId,
+  redirectTo,
+  buttonLabel = "Upload a new photo",
+}: AvatarUploadProps) {
+  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [state, setState] = useState<FormState>({ status: "idle" });
 
@@ -43,7 +56,12 @@ export function AvatarUpload({ userId }: { userId: string }) {
     if (error) {
       setState({ status: "error", message: `Upload failed: ${error.message}` });
     } else {
-      setState(await saveAvatarPath(path));
+      const result = await saveAvatarPath(path);
+      setState(result);
+      if (result.status === "success" && redirectTo) {
+        router.push(redirectTo);
+        return;
+      }
     }
 
     setUploading(false);
@@ -53,7 +71,7 @@ export function AvatarUpload({ userId }: { userId: string }) {
   return (
     <div>
       <label className="inline-block cursor-pointer rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100 has-[:disabled]:cursor-default has-[:disabled]:opacity-60 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800">
-        {uploading ? "Uploading…" : "Upload a new photo"}
+        {uploading ? "Uploading…" : buttonLabel}
         <input
           type="file"
           accept={ALLOWED_TYPES.join(",")}

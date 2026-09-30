@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     return loginWithError(error.message);
   }
 
-  // First-time users (no name yet) are sent to fill in their name.
+  // Users without a name or photo yet are sent to finish their profile.
   const { data: profile } = await supabase
     .from("profiles")
     .select("first_name, last_name, avatar_path")

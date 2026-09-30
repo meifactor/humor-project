@@ -25,9 +25,9 @@ export default async function Home() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16 font-sans">
       {current && !current.isComplete && (
         <p className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-          Your profile is missing your name.{" "}
+          Your profile isn&apos;t finished yet.{" "}
           <Link href="/onboarding" className="font-medium underline">
-            Add your first and last name
+            {current.hasName ? "Add a profile photo" : "Add your name and photo"}
           </Link>
         </p>
       )}

@@ -8,8 +8,17 @@ export type Profile = {
   avatar_path: string | null;
 };
 
-export function isProfileComplete(profile: Profile | null) {
+export function hasName(profile: Profile | null) {
   return Boolean(profile?.first_name?.trim() && profile?.last_name?.trim());
+}
+
+export function hasPhoto(profile: Profile | null) {
+  return Boolean(profile?.avatar_path);
+}
+
+// New users must add both their name and a photo before using the app.
+export function isProfileComplete(profile: Profile | null) {
+  return hasName(profile) && hasPhoto(profile);
 }
 
 // The signed-in user plus their profile row, or null when signed out.
@@ -44,6 +53,8 @@ export const getCurrentUser = cache(async () => {
     profile,
     avatarUrl,
     displayName: fullName || user.email || "there",
+    hasName: hasName(profile),
+    hasPhoto: hasPhoto(profile),
     isComplete: isProfileComplete(profile),
   };
 });
