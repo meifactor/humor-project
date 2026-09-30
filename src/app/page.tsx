@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/profile";
+import { createClient } from "@/lib/supabase/server";
 
 // Fetch fresh rows from Supabase on every request.
 export const dynamic = "force-dynamic";
@@ -11,6 +13,8 @@ type Joke = {
 };
 
 export default async function Home() {
+  const current = await getCurrentUser();
+  const supabase = await createClient();
   const { data: jokes, error } = await supabase
     .from("jokes")
     .select("id, setup, punchline, created_at")
@@ -19,6 +23,15 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16 font-sans">
+      {current && !current.isComplete && (
+        <p className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          Your profile is missing your name.{" "}
+          <Link href="/onboarding" className="font-medium underline">
+            Add your first and last name
+          </Link>
+        </p>
+      )}
+
       <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
         Jokes
       </h1>
