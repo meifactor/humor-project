@@ -73,8 +73,8 @@ export async function completeOnboarding(
   if (result.status === "error") {
     return result;
   }
-  // Back to onboarding for the photo step (it forwards to the dashboard once everything is done).
-  redirect("/onboarding");
+  // Next, the optional photo step.
+  redirect("/onboarding/photo");
 }
 
 // Stores only the Storage path of an already-uploaded photo, never the image itself.

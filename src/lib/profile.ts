@@ -16,9 +16,9 @@ export function hasPhoto(profile: Profile | null) {
   return Boolean(profile?.avatar_path);
 }
 
-// New users must add both their name and a photo before using the app.
+// A name is required before using the app; the photo is optional.
 export function isProfileComplete(profile: Profile | null) {
-  return hasName(profile) && hasPhoto(profile);
+  return hasName(profile);
 }
 
 // The signed-in user plus their profile row, or null when signed out.
