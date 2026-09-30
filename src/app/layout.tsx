@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -27,6 +28,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
+        <footer className="border-t border-zinc-200 dark:border-zinc-800">
+          <div className="mx-auto w-full max-w-3xl px-6 py-6 text-sm text-zinc-500">
+            <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+              Privacy Policy
+            </Link>
+          </div>
+        </footer>
       </body>
     </html>
   );
