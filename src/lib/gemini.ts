@@ -11,8 +11,14 @@ export function getGeminiModel() {
 
 // Tried in order when a model has a server error (5xx), is rate limited (429), retired (404),
 // times out or the network fails. Bad requests (other 4xx errors) aren't retried.
-const FALLBACK_MODELS = ["gemini-3.7-flash", "gemini-flash-lite-latest"];
-const REQUEST_TIMEOUT_MS = 25_000;
+// Each model has its own free-tier daily quota, so falling back also spreads usage.
+const FALLBACK_MODELS = [
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite",
+  "gemini-3.7-flash",
+  "gemini-flash-lite-latest",
+];
+const REQUEST_TIMEOUT_MS = 20_000;
 
 function shouldTryNextModel(error: unknown) {
   return !(error instanceof ApiError) || error.status >= 500 || [404, 429].includes(error.status);
