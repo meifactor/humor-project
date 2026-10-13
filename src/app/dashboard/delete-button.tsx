@@ -10,11 +10,11 @@ export function DeleteButton() {
       type="submit"
       disabled={pending}
       onClick={(event) => {
-        if (!window.confirm("Delete this photo and its captions? Votes on it will be lost.")) {
+        if (!window.confirm("Delete this photo and its captions? Reactions on it will be lost.")) {
           event.preventDefault();
         }
       }}
-      className="text-sm text-zinc-500 hover:text-red-700 disabled:opacity-50 dark:hover:text-red-400"
+      className="text-sm font-bold text-zinc-400 hover:text-red-400 disabled:opacity-50"
     >
       {pending ? "Deleting…" : "Delete"}
     </button>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvatarUpload } from "@/app/profile/avatar-upload";
 import { Avatar } from "@/components/avatar";
+import { StationSign } from "@/components/station-sign";
 import { getCurrentUser } from "@/lib/profile";
 
 // Sign-up step 2: an optional profile photo.
@@ -20,9 +21,9 @@ export default async function OnboardingPhotoPage() {
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-6 py-16">
       <p className="text-sm font-medium text-zinc-500">Step 2 of 2 · Optional</p>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <StationSign as="h1" className="mt-2">
         Nice to meet you, {current.profile?.first_name}! Add a photo?
-      </h1>
+      </StationSign>
       <p className="mt-2 mb-8 text-zinc-600 dark:text-zinc-400">
         Upload a photo of yourself so it shows on your profile. You can skip
         this and add one later on your Profile page.

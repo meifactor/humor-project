@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { StationSign } from "@/components/station-sign";
 import { getCurrentUser } from "@/lib/profile";
 import { GoogleSignInButton } from "./google-sign-in-button";
 
@@ -11,17 +12,18 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <main className="mx-auto w-full max-w-sm flex-1 px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <StationSign as="h1" className="mt-2">
         Sign in
-      </h1>
+      </StationSign>
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-        Sign in to see your dashboard and set up your profile.
+        Sign in to see the full feed, react 💀 😂 😬 🤨 to captions and caption
+        your own photos.
       </p>
 
       {typeof error === "string" && (
         <p
           role="alert"
-          className="mt-6 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+          className="mt-6 rounded-md border-2 border-mta-red p-3 text-sm font-medium text-mta-red"
         >
           Sign-in failed: {error}
         </p>

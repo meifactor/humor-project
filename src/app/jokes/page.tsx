@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { StationSign } from "@/components/station-sign";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Jokes · Humor Project" };
@@ -23,9 +24,9 @@ export default async function JokesPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16 font-sans">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <StationSign as="h1" className="mt-2">
         Jokes
-      </h1>
+      </StationSign>
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
         Rows loaded from the Supabase <code>jokes</code> table.
       </p>

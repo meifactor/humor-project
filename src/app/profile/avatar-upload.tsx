@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
+import { secondaryButtonClass } from "@/components/ui";
 import { AVATAR_BUCKET } from "@/lib/buckets";
 import { createClient } from "@/lib/supabase/client";
 import { saveAvatarPath, type FormState } from "./actions";
@@ -70,7 +71,7 @@ export function AvatarUpload({
 
   return (
     <div>
-      <label className="inline-block cursor-pointer rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100 has-[:disabled]:cursor-default has-[:disabled]:opacity-60 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800">
+      <label className={`${secondaryButtonClass} cursor-pointer text-sm has-[:disabled]:cursor-default has-[:disabled]:opacity-60`}>
         {uploading ? "Uploading…" : buttonLabel}
         <input
           type="file"

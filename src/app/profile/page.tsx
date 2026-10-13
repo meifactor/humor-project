@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { NameForm } from "@/components/name-form";
+import { StationSign } from "@/components/station-sign";
+import { cardClass } from "@/components/ui";
 import { getCurrentUser } from "@/lib/profile";
 import { updateName } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
 
-const sectionClass =
-  "rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900";
+const sectionClass = `${cardClass} p-6`;
 
 export default async function ProfilePage() {
   const current = await getCurrentUser();
@@ -16,9 +17,9 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <StationSign as="h1" className="mt-2">
         Profile
-      </h1>
+      </StationSign>
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
         Signed in as {current.user.email}
       </p>

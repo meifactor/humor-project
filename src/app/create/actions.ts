@@ -6,6 +6,7 @@ import { UPLOADS_BUCKET } from "@/lib/buckets";
 import { buildCaptionPrompt, generateCaptions } from "@/lib/gemini";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isVibeId } from "@/lib/vibes";
 
 const DAILY_LIMIT = 10;
 const MAX_CONTEXT_LENGTH = 200;
@@ -19,6 +20,7 @@ const MIME_TYPES: Record<string, string> = {
 export async function createGeneration(
   path: string,
   rawContext: string,
+  vibe: string,
 ): Promise<{ error: string }> {
   const supabase = await createClient();
   const {
@@ -33,6 +35,10 @@ export async function createGeneration(
   const match = path.match(new RegExp(`^${user.id}/\\d+\\.(jpeg|png|webp|gif)$`));
   if (!match) {
     return { error: "Invalid photo. Please upload it again." };
+  }
+
+  if (!isVibeId(vibe)) {
+    return { error: "Please pick a caption vibe." };
   }
 
   const removeUpload = () => supabase.storage.from(UPLOADS_BUCKET).remove([path]);
@@ -62,7 +68,7 @@ export async function createGeneration(
     return { error: "We couldn't read your photo. Please upload it again." };
   }
 
-  const prompt = buildCaptionPrompt(context);
+  const prompt = buildCaptionPrompt(context, vibe);
   let result: Awaited<ReturnType<typeof generateCaptions>>;
   try {
     result = await generateCaptions(
@@ -88,6 +94,7 @@ export async function createGeneration(
       user_id: user.id,
       image_path: path,
       context,
+      vibe,
       prompt,
       model: result.model,
     })

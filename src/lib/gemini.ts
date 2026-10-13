@@ -1,5 +1,6 @@
 import "server-only";
-import { createPartFromBase64, GoogleGenAI } from "@google/genai";
+import { ApiError, createPartFromBase64, GoogleGenAI } from "@google/genai";
+import { getVibe, type VibeId } from "@/lib/vibes";
 
 export const CAPTION_COUNT = 5;
 const MAX_CAPTION_LENGTH = 300;
@@ -8,8 +9,18 @@ export function getGeminiModel() {
   return process.env.GEMINI_MODEL || "gemini-flash-latest";
 }
 
+// Tried in order when a model has a server error (5xx), is rate limited (429), retired (404),
+// times out or the network fails. Bad requests (other 4xx errors) aren't retried.
+const FALLBACK_MODELS = ["gemini-3.7-flash", "gemini-flash-lite-latest"];
+const REQUEST_TIMEOUT_MS = 25_000;
+
+function shouldTryNextModel(error: unknown) {
+  return !(error instanceof ApiError) || error.status >= 500 || [404, 429].includes(error.status);
+}
+
 // The full prompt is saved with each generation, so keep it deterministic.
-export function buildCaptionPrompt(context: string | null) {
+export function buildCaptionPrompt(context: string | null, vibeId: VibeId) {
+  const vibe = getVibe(vibeId);
   const lines = [
     "You write captions for a humor app used by Columbia University students in New York City.",
     "The audience is college students who are very online, many of them new to NYC, living in the dorms and exploring the city on weekends.",
@@ -17,7 +28,8 @@ export function buildCaptionPrompt(context: string | null) {
     "",
     "Rules:",
     "- Each caption is a single line under 120 characters, like a meme caption or a post.",
-    "- Mix styles: observational, relatable college life, NYC-specific, absurd, deadpan.",
+    `- Style (${vibe.label}): ${vibe.instructions}`,
+    "- Make the captions different from each other, not variations of one joke.",
     "- Base the humor on what is actually in the photo.",
     "- Keep it playful: no insults about anyone's appearance, race, religion, gender, sexuality or disability, no slurs, nothing sexual.",
     "- No hashtags. Only use an emoji if it is part of the joke.",
@@ -30,6 +42,23 @@ export function buildCaptionPrompt(context: string | null) {
   return lines.join("\n");
 }
 
+// Ask for exactly CAPTION_COUNT captions as JSON.
+const CAPTION_CONFIG = {
+  responseMimeType: "application/json",
+  responseJsonSchema: {
+    type: "object",
+    properties: {
+      captions: {
+        type: "array",
+        items: { type: "string" },
+        minItems: CAPTION_COUNT,
+        maxItems: CAPTION_COUNT,
+      },
+    },
+    required: ["captions"],
+  },
+};
+
 export async function generateCaptions(
   image: { base64: string; mimeType: string },
   prompt: string,
@@ -40,25 +69,33 @@ export async function generateCaptions(
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: getGeminiModel(),
-    contents: [createPartFromBase64(image.base64, image.mimeType), prompt],
-    config: {
-      responseMimeType: "application/json",
-      responseJsonSchema: {
-        type: "object",
-        properties: {
-          captions: {
-            type: "array",
-            items: { type: "string" },
-            minItems: CAPTION_COUNT,
-            maxItems: CAPTION_COUNT,
-          },
-        },
-        required: ["captions"],
+  const models = [getGeminiModel(), ...FALLBACK_MODELS.filter((m) => m !== getGeminiModel())];
+  const request = (model: string) =>
+    ai.models.generateContent({
+      model,
+      contents: [createPartFromBase64(image.base64, image.mimeType), prompt],
+      config: {
+        ...CAPTION_CONFIG,
+        // No built-in retries: falling back to the next model is quicker.
+        httpOptions: { timeout: REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
       },
-    },
-  });
+    });
+
+  let response: Awaited<ReturnType<typeof request>> | undefined;
+  for (const [index, model] of models.entries()) {
+    try {
+      response = await request(model);
+      break;
+    } catch (error) {
+      if (!shouldTryNextModel(error) || index === models.length - 1) {
+        throw error;
+      }
+      console.warn(`Gemini model ${model} is unavailable, trying ${models[index + 1]}`);
+    }
+  }
+  if (!response) {
+    throw new Error("Gemini returned no response");
+  }
 
   const parsed: unknown = JSON.parse(response.text ?? "{}");
   const raw =

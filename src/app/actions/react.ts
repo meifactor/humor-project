@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isReactionId, type ReactionId } from "@/lib/reactions";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// value: 1 = upvote, -1 = downvote, 0 = remove my vote.
-export async function vote(captionId: string, value: 1 | -1 | 0) {
-  if (!UUID.test(captionId) || ![1, -1, 0].includes(value)) {
-    return { error: "Invalid vote." };
+// Set the signed-in user's reaction to a caption, or remove it with null.
+export async function react(captionId: string, reaction: ReactionId | null) {
+  if (!UUID.test(captionId) || (reaction !== null && !isReactionId(reaction))) {
+    return { error: "Invalid reaction." };
   }
 
   const supabase = await createClient();
@@ -17,13 +18,13 @@ export async function vote(captionId: string, value: 1 | -1 | 0) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Only signed-in users can vote; RLS also rejects votes for anyone else's user_id.
+  // Only signed-in users can react; RLS also rejects rows for anyone else's user_id.
   if (!user) {
     redirect("/login");
   }
 
   const { error } =
-    value === 0
+    reaction === null
       ? await supabase
           .from("caption_votes")
           .delete()
@@ -33,14 +34,14 @@ export async function vote(captionId: string, value: 1 | -1 | 0) {
           {
             user_id: user.id,
             caption_id: captionId,
-            value,
+            reaction,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id,caption_id" },
         );
 
   if (error) {
-    return { error: "Your vote couldn't be saved. Please try again." };
+    return { error: "Your reaction couldn't be saved. Please try again." };
   }
 
   revalidatePath("/", "layout");

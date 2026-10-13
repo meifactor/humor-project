@@ -3,22 +3,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { GenerationCard } from "@/components/generation-card";
-import { getMyVotes, getUserGenerations } from "@/lib/feed";
+import { StationSign } from "@/components/station-sign";
+import { cardClass, primaryButtonClass } from "@/components/ui";
+import { getMyReactionCounts, getMyVotes, getUserGenerations } from "@/lib/feed";
+import { getHumorProfile } from "@/lib/humor-profile";
 import { getCurrentUser } from "@/lib/profile";
-import { createClient } from "@/lib/supabase/server";
 import { deleteGeneration } from "./actions";
 import { DeleteButton } from "./delete-button";
 
 export const metadata: Metadata = { title: "My stuff · Humor Project" };
-
-async function countMyVotes() {
-  const supabase = await createClient();
-  // RLS only lets users see their own votes, so this counts the current user's.
-  const { count } = await supabase
-    .from("caption_votes")
-    .select("caption_id", { count: "exact", head: true });
-  return count ?? 0;
-}
 
 // Signed-in users only: the proxy redirects signed-out visitors, and this page checks again.
 export default async function DashboardPage() {
@@ -30,65 +23,103 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const [generations, votesCast] = await Promise.all([
+  const [generations, reactionCounts] = await Promise.all([
     getUserGenerations(current.user.id),
-    countMyVotes(),
+    getMyReactionCounts(),
   ]);
   const myVotes = await getMyVotes(generations.flatMap((g) => g.captions.map((c) => c.id)));
-  const totalScore = generations.reduce(
-    (sum, g) => sum + g.captions.reduce((s, c) => s + c.score, 0),
-    0,
+  const profile = getHumorProfile(reactionCounts);
+
+  const allCaptions = generations.flatMap((g) =>
+    g.captions.map((caption) => ({ ...caption, generationId: g.id })),
+  );
+  const totalScore = allCaptions.reduce((sum, caption) => sum + caption.score, 0);
+  const mostDead = allCaptions.reduce<(typeof allCaptions)[number] | null>(
+    (best, caption) =>
+      caption.counts.dead > 0 && (!best || caption.counts.dead > best.counts.dead) ? caption : best,
+    null,
   );
 
   const stats = [
     { label: "Photos captioned", value: generations.length },
     { label: "Total caption score", value: totalScore },
-    { label: "Votes you've cast", value: votesCast },
+    { label: "Reactions given", value: profile.total },
   ];
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar url={current.avatarUrl} name={current.displayName} size={64} />
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            My stuff
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Hey {current.profile?.first_name}, here&apos;s how your captions are doing.
-          </p>
-        </div>
-      </div>
+    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-8">
+      <StationSign
+        as="h1"
+        bullets={<Avatar url={current.avatarUrl} name={current.displayName} size={36} />}
+      >
+        My stuff
+      </StationSign>
 
-      <dl className="mt-8 grid grid-cols-3 gap-3">
+      <dl className="mt-6 grid grid-cols-3 gap-3">
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <dt className="text-xs text-zinc-500">{stat.label}</dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-              {stat.value}
-            </dd>
+          <div key={stat.label} className={`${cardClass} p-4`}>
+            <dt className="text-xs font-bold text-zinc-500">{stat.label}</dt>
+            <dd className="mt-1 text-3xl font-bold tabular-nums">{stat.value}</dd>
           </div>
         ))}
       </dl>
 
+      <section className={`${cardClass} mt-6 p-5`}>
+        <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Your humor profile</p>
+        <h2 className="mt-1 text-2xl font-bold">{profile.title}</h2>
+        <p className="mt-1 text-zinc-600 dark:text-zinc-400">{profile.blurb}</p>
+
+        {profile.total > 0 && (
+          <>
+            <div className="mt-4 flex h-4 overflow-hidden rounded-full border-2 border-line" aria-hidden>
+              {profile.breakdown.map((reaction) =>
+                reaction.count > 0 ? (
+                  <div
+                    key={reaction.id}
+                    style={{ width: `${(reaction.count / profile.total) * 100}%`, backgroundColor: reaction.color }}
+                  />
+                ) : null,
+              )}
+            </div>
+            <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+              {profile.breakdown.map((reaction) => (
+                <li key={reaction.id} className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: reaction.color }}
+                  />
+                  {reaction.emoji} {reaction.label}: <strong>{reaction.percent}%</strong>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {mostDead && (
+          <div className="mt-5 rounded-md bg-black p-4 text-white">
+            <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">
+              Your most 💀 caption · {mostDead.counts.dead} dead
+            </p>
+            <Link href={`/p/${mostDead.generationId}`} className="mt-1 block font-bold hover:underline">
+              “{mostDead.text}”
+            </Link>
+          </div>
+        )}
+      </section>
+
       <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Your photos</h2>
-        <Link
-          href="/create"
-          className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
+        <h2 className="text-xl font-bold">Your photos</h2>
+        <Link href="/create" className={`${primaryButtonClass} text-sm`}>
           + Caption a photo
         </Link>
       </div>
 
       {generations.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-zinc-200 bg-white p-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <p className={`${cardClass} mt-4 p-6`}>
           You haven&apos;t captioned any photos yet. Snap something on campus or
           on the subway and{" "}
-          <Link href="/create" className="font-medium underline">
+          <Link href="/create" className="font-bold underline">
             see what the AI comes up with
           </Link>
           .

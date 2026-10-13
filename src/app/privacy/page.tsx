@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { StationSign } from "@/components/station-sign";
 
 export const metadata: Metadata = {
   title: "Privacy Policy · Humor Project",
@@ -10,9 +11,9 @@ const textClass = "mt-2 text-zinc-600 dark:text-zinc-400";
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <StationSign as="h1" className="mt-2">
         Privacy Policy
-      </h1>
+      </StationSign>
       <p className={textClass}>Last updated: October 7, 2026</p>
 
       <p className={textClass}>

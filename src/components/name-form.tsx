@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { FormState } from "@/app/profile/actions";
+import { inputClass, primaryButtonClass } from "@/components/ui";
 
 type NameFormProps = {
   action: (prevState: FormState, formData: FormData) => Promise<FormState>;
@@ -10,8 +11,6 @@ type NameFormProps = {
   submitLabel: string;
 };
 
-const inputClass =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-300";
 
 export function NameForm({ action, firstName, lastName, submitLabel }: NameFormProps) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
@@ -47,7 +46,7 @@ export function NameForm({ action, firstName, lastName, submitLabel }: NameFormP
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white transition hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className={primaryButtonClass}
         >
           {pending ? "Saving…" : submitLabel}
         </button>

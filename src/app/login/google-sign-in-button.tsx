@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export function GoogleSignInButton() {
+// "dark" for light backgrounds, "light" for use on black station signs.
+export function GoogleSignInButton({ variant = "dark" }: { variant?: "dark" | "light" }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,12 +32,19 @@ export function GoogleSignInButton() {
         type="button"
         onClick={signIn}
         disabled={pending}
-        className="w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white transition hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className={`w-full rounded-full px-4 py-3 font-bold transition disabled:opacity-60 ${
+          variant === "light"
+            ? "bg-white text-black hover:bg-zinc-200"
+            : "bg-black text-white hover:bg-zinc-700 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        }`}
       >
         {pending ? "Redirecting to Google…" : "Continue with Google"}
       </button>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+        <p
+          role="alert"
+          className={`mt-3 text-sm ${variant === "light" ? "text-red-400" : "text-red-700 dark:text-red-400"}`}
+        >
           {error}
         </p>
       )}

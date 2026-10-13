@@ -3,21 +3,28 @@ import Link from "next/link";
 type TabsProps = {
   tabs: { href: string; label: string; active: boolean }[];
   label: string;
+  // "light" for use on black station signs.
+  variant?: "dark" | "light";
 };
 
-export function Tabs({ tabs, label }: TabsProps) {
+export function Tabs({ tabs, label, variant = "dark" }: TabsProps) {
+  const activeClass =
+    variant === "light"
+      ? "bg-white text-black"
+      : "bg-black text-white dark:bg-white dark:text-black";
+  const idleClass =
+    variant === "light"
+      ? "text-zinc-300 hover:text-white"
+      : "text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-white";
+
   return (
-    <nav aria-label={label} className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-900">
+    <nav aria-label={label} className="flex flex-wrap gap-1">
       {tabs.map((tab) => (
         <Link
           key={tab.href}
           href={tab.href}
           aria-current={tab.active ? "page" : undefined}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-            tab.active
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-          }`}
+          className={`rounded-full px-3 py-1 text-sm font-bold transition ${tab.active ? activeClass : idleClass}`}
         >
           {tab.label}
         </Link>
