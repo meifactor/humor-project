@@ -3,6 +3,9 @@ import { signOut } from "@/app/profile/actions";
 import { Avatar } from "@/components/avatar";
 import { getCurrentUser } from "@/lib/profile";
 
+const buttonClass =
+  "rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200";
+
 const linkClass =
   "text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50";
 
@@ -18,8 +21,11 @@ export async function SiteHeader() {
 
         {current ? (
           <nav className="flex flex-wrap items-center gap-4">
+            <Link href="/leaderboard" className={linkClass}>
+              Leaderboard
+            </Link>
             <Link href="/dashboard" className={linkClass}>
-              Dashboard
+              My stuff
             </Link>
             <Link
               href="/profile"
@@ -33,14 +39,19 @@ export async function SiteHeader() {
                 Sign out
               </button>
             </form>
+            <Link href="/create" className={buttonClass}>
+              + Create
+            </Link>
           </nav>
         ) : (
-          <Link
-            href="/login"
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            Sign in
-          </Link>
+          <nav className="flex flex-wrap items-center gap-4">
+            <Link href="/leaderboard" className={linkClass}>
+              Leaderboard
+            </Link>
+            <Link href="/login" className={buttonClass}>
+              Sign in
+            </Link>
+          </nav>
         )}
       </div>
     </header>

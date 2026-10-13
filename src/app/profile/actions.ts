@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { AVATAR_BUCKET } from "@/lib/avatar";
+import { AVATAR_BUCKET } from "@/lib/buckets";
 import { createClient } from "@/lib/supabase/server";
 
 export type FormState = {

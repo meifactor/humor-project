@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "./env";
 
 // Routes that require a signed-in user.
-const PROTECTED_PATHS = ["/dashboard", "/profile", "/onboarding"];
+const PROTECTED_PATHS = ["/dashboard", "/profile", "/onboarding", "/create"];
 
 function isProtected(pathname: string) {
   return PROTECTED_PATHS.some(

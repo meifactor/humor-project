@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Humor Project",
-  description: "Jokes loaded from Supabase",
+  description: "Upload a photo, get AI captions, and vote on the funniest.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -30,9 +30,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <footer className="border-t border-zinc-200 dark:border-zinc-800">
           <div className="mx-auto w-full max-w-3xl px-6 py-6 text-sm text-zinc-500">
-            <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-50">
-              Privacy Policy
-            </Link>
+            <nav className="flex gap-4">
+              <Link href="/jokes" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+                Jokes
+              </Link>
+              <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+                Privacy Policy
+              </Link>
+            </nav>
           </div>
         </footer>
       </body>

@@ -13,12 +13,12 @@ export default function PrivacyPage() {
       <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
         Privacy Policy
       </h1>
-      <p className={textClass}>Last updated: September 30, 2026</p>
+      <p className={textClass}>Last updated: October 7, 2026</p>
 
       <p className={textClass}>
-        Humor Project is a student project that shows a list of jokes and lets
-        people sign in to set up a simple profile. This page explains what
-        information the app collects and how it is used.
+        Humor Project is a student project where people upload photos, get
+        AI-written captions, and vote on the funniest ones. This page explains
+        what information the app collects and how it is used.
       </p>
 
       <h2 className={headingClass}>Information we collect</h2>
@@ -35,27 +35,40 @@ export default function PrivacyPage() {
           <strong>Profile photo:</strong> if you upload one, the image is stored
           in file storage and linked to your profile.
         </li>
+        <li>
+          <strong>Photos you upload for captions:</strong> the photo, any note you
+          add, and the captions written for it. These are public: anyone using
+          the app can see them, along with your name and profile photo.
+        </li>
+        <li>
+          <strong>Votes:</strong> which captions you upvoted or downvoted. Other
+          users only see vote totals, never who voted.
+        </li>
       </ul>
 
       <h2 className={headingClass}>How we use it</h2>
       <p className={textClass}>
-        Your information is used only to sign you in, greet you by name, and
-        show your profile photo inside the app. We don&apos;t sell or share your
-        information, and we don&apos;t use it for advertising.
+        Your information is used only to run the app: signing you in, showing
+        your name and photo next to your posts, writing captions, and counting
+        votes. We don&apos;t sell or share your information, and we don&apos;t
+        use it for advertising.
       </p>
 
       <h2 className={headingClass}>Where it is stored</h2>
       <p className={textClass}>
         Account details, profile information and photos are stored with
-        Supabase, and the app is hosted on Vercel. Profile photos are stored at
-        a public web address so they can be displayed in the app.
+        Supabase, and the app is hosted on Vercel. Photos are stored at public
+        web addresses so they can be displayed in the app. To write captions,
+        each uploaded photo and its note are sent to Google&apos;s Gemini AI
+        service, which processes them under Google&apos;s terms.
       </p>
 
       <h2 className={headingClass}>Deleting your data</h2>
       <p className={textClass}>
         You can change your name or replace your photo at any time on your
-        Profile page. To have your account and all its data deleted, contact
-        the project owner through the{" "}
+        Profile page, and delete any photo you captioned on your My stuff
+        page. To have your account and all its data deleted, contact the
+        project owner through the{" "}
         <a
           href="https://github.com/meifactor/humor-project"
           className="font-medium text-zinc-900 underline dark:text-zinc-50"

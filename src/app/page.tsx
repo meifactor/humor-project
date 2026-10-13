@@ -1,28 +1,21 @@
 import Link from "next/link";
+import { GenerationCard } from "@/components/generation-card";
+import { Tabs } from "@/components/tabs";
+import { getFeed, getMyVotes, type FeedSort } from "@/lib/feed";
 import { getCurrentUser } from "@/lib/profile";
-import { createClient } from "@/lib/supabase/server";
 
-// Fetch fresh rows from Supabase on every request.
-export const dynamic = "force-dynamic";
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const { sort: sortParam } = await searchParams;
+  const sort: FeedSort = sortParam === "top" ? "top" : "new";
 
-type Joke = {
-  id: number;
-  setup: string;
-  punchline: string;
-  created_at: string;
-};
-
-export default async function Home() {
   const current = await getCurrentUser();
-  const supabase = await createClient();
-  const { data: jokes, error } = await supabase
-    .from("jokes")
-    .select("id, setup, punchline, created_at")
-    .order("id", { ascending: true })
-    .returns<Joke[]>();
+  const { generations, error } = await getFeed(sort);
+  const myVotes = current
+    ? await getMyVotes(generations.flatMap((g) => g.captions.map((c) => c.id)))
+    : new Map();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16 font-sans">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       {current && !current.isComplete && (
         <p className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
           Your profile is missing your name.{" "}
@@ -32,35 +25,54 @@ export default async function Home() {
         </p>
       )}
 
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Jokes
-      </h1>
-      <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-        Rows loaded from the Supabase <code>jokes</code> table.
-      </p>
+      <section className="rounded-xl bg-zinc-900 px-6 py-8 text-white dark:bg-zinc-100 dark:text-zinc-900">
+        <h1 className="text-3xl font-semibold tracking-tight">Caption the city.</h1>
+        <p className="mt-2 text-zinc-300 dark:text-zinc-600">
+          Upload a photo from campus, the subway or your weekend in NYC. AI writes
+          the captions, everyone votes on the funniest.
+        </p>
+        <Link
+          href={current ? "/create" : "/login"}
+          className="mt-5 inline-block rounded-lg bg-white px-4 py-2 font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-700"
+        >
+          {current ? "+ Caption a photo" : "Sign in to start"}
+        </Link>
+      </section>
+
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+          {sort === "top" ? "Top today" : "Latest"}
+        </h2>
+        <Tabs
+          label="Sort the feed"
+          tabs={[
+            { href: "/", label: "New", active: sort === "new" },
+            { href: "/?sort=top", label: "Top today", active: sort === "top" },
+          ]}
+        />
+      </div>
 
       {error ? (
-        <p className="mt-8 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          Could not load jokes: {error.message}
+        <p className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          Could not load the feed: {error.message}
         </p>
-      ) : !jokes || jokes.length === 0 ? (
-        <p className="mt-8 text-zinc-600 dark:text-zinc-400">No jokes yet.</p>
+      ) : generations.length === 0 ? (
+        <p className="mt-6 text-zinc-600 dark:text-zinc-400">
+          {sort === "top"
+            ? "Nothing posted in the last 24 hours yet. Be the first!"
+            : "No photos yet. Be the first to caption one!"}
+        </p>
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-          {jokes.map((joke) => (
-            <li
-              key={joke.id}
-              className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                {joke.setup}
-              </p>
-              <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                {joke.punchline}
-              </p>
-            </li>
+        <div className="mt-6 space-y-8">
+          {generations.map((generation) => (
+            <GenerationCard
+              key={generation.id}
+              generation={generation}
+              myVotes={myVotes}
+              signedIn={Boolean(current)}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </main>
   );

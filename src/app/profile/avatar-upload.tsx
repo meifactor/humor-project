@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
-import { AVATAR_BUCKET } from "@/lib/avatar";
+import { AVATAR_BUCKET } from "@/lib/buckets";
 import { createClient } from "@/lib/supabase/client";
 import { saveAvatarPath, type FormState } from "./actions";
 

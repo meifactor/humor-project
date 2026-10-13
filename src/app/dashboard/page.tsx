@@ -1,25 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/avatar";
+import { GenerationCard } from "@/components/generation-card";
+import { getMyVotes, getUserGenerations } from "@/lib/feed";
 import { getCurrentUser } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { deleteGeneration } from "./actions";
+import { DeleteButton } from "./delete-button";
 
-type Joke = { id: number; setup: string; punchline: string };
+export const metadata: Metadata = { title: "My stuff · Humor Project" };
 
-// A different joke each day, the same for everyone.
-async function getJokeOfTheDay() {
+async function countMyVotes() {
   const supabase = await createClient();
-  const { data: jokes } = await supabase
-    .from("jokes")
-    .select("id, setup, punchline")
-    .order("id", { ascending: true })
-    .returns<Joke[]>();
-
-  if (!jokes?.length) {
-    return null;
-  }
-  const dayNumber = Math.floor(Date.now() / 86_400_000);
-  return jokes[dayNumber % jokes.length];
+  // RLS only lets users see their own votes, so this counts the current user's.
+  const { count } = await supabase
+    .from("caption_votes")
+    .select("caption_id", { count: "exact", head: true });
+  return count ?? 0;
 }
 
 // Signed-in users only: the proxy redirects signed-out visitors, and this page checks again.
@@ -32,42 +30,87 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const jokeOfTheDay = await getJokeOfTheDay();
+  const [generations, votesCast] = await Promise.all([
+    getUserGenerations(current.user.id),
+    countMyVotes(),
+  ]);
+  const myVotes = await getMyVotes(generations.flatMap((g) => g.captions.map((c) => c.id)));
+  const totalScore = generations.reduce(
+    (sum, g) => sum + g.captions.reduce((s, c) => s + c.score, 0),
+    0,
+  );
+
+  const stats = [
+    { label: "Photos captioned", value: generations.length },
+    { label: "Total caption score", value: totalScore },
+    { label: "Votes you've cast", value: votesCast },
+  ];
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="flex flex-wrap items-center gap-4">
         <Avatar url={current.avatarUrl} name={current.displayName} size={64} />
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Welcome back, {current.profile?.first_name}!
+            My stuff
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            This dashboard is only visible when you&apos;re signed in.
+            Hey {current.profile?.first_name}, here&apos;s how your captions are doing.
           </p>
         </div>
       </div>
 
-      {jokeOfTheDay && (
-        <section className="mt-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Your joke of the day
-          </h2>
-          <p className="mt-3 text-lg font-medium text-zinc-900 dark:text-zinc-50">
-            {jokeOfTheDay.setup}
-          </p>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">{jokeOfTheDay.punchline}</p>
-        </section>
-      )}
+      <dl className="mt-8 grid grid-cols-3 gap-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <dt className="text-xs text-zinc-500">{stat.label}</dt>
+            <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {stat.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
 
-      <div className="mt-8 flex flex-wrap gap-4 text-sm">
-        <Link href="/profile" className="font-medium text-zinc-900 underline dark:text-zinc-50">
-          Edit your profile
-        </Link>
-        <Link href="/" className="font-medium text-zinc-900 underline dark:text-zinc-50">
-          See all jokes
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Your photos</h2>
+        <Link
+          href="/create"
+          className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          + Caption a photo
         </Link>
       </div>
+
+      {generations.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-zinc-200 bg-white p-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          You haven&apos;t captioned any photos yet. Snap something on campus or
+          on the subway and{" "}
+          <Link href="/create" className="font-medium underline">
+            see what the AI comes up with
+          </Link>
+          .
+        </p>
+      ) : (
+        <div className="mt-4 space-y-8">
+          {generations.map((generation) => (
+            <GenerationCard
+              key={generation.id}
+              generation={generation}
+              myVotes={myVotes}
+              signedIn
+              actions={
+                <form action={deleteGeneration}>
+                  <input type="hidden" name="id" value={generation.id} />
+                  <DeleteButton />
+                </form>
+              }
+            />
+          ))}
+        </div>
+      )}
     </main>
   );
 }

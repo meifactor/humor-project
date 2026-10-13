@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { AVATAR_BUCKET } from "@/lib/avatar";
+import { AVATAR_BUCKET } from "@/lib/buckets";
 import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
