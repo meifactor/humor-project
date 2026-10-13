@@ -18,7 +18,11 @@ const FALLBACK_MODELS = [
   "gemini-3.7-flash",
   "gemini-flash-lite-latest",
 ];
-const REQUEST_TIMEOUT_MS = 20_000;
+// One time budget for the whole chain (the create page allows 120 seconds), so a slow
+// but working model gets time to finish instead of being cut off early.
+const TOTAL_BUDGET_MS = 100_000;
+const MAX_ATTEMPT_MS = 45_000;
+const MIN_ATTEMPT_MS = 10_000;
 
 function shouldTryNextModel(error: unknown) {
   return !(error instanceof ApiError) || error.status >= 500 || [404, 429].includes(error.status);
@@ -76,27 +80,32 @@ export async function generateCaptions(
 
   const ai = new GoogleGenAI({ apiKey });
   const models = [getGeminiModel(), ...FALLBACK_MODELS.filter((m) => m !== getGeminiModel())];
-  const request = (model: string) =>
+  const request = (model: string, timeout: number) =>
     ai.models.generateContent({
       model,
       contents: [createPartFromBase64(image.base64, image.mimeType), prompt],
       config: {
         ...CAPTION_CONFIG,
         // No built-in retries: falling back to the next model is quicker.
-        httpOptions: { timeout: REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
+        httpOptions: { timeout, retryOptions: { attempts: 1 } },
       },
     });
 
+  const deadline = Date.now() + TOTAL_BUDGET_MS;
   let response: Awaited<ReturnType<typeof request>> | undefined;
   for (const [index, model] of models.entries()) {
+    const timeout = Math.min(MAX_ATTEMPT_MS, deadline - Date.now());
+    const isLast = index === models.length - 1 || timeout < MIN_ATTEMPT_MS;
+    const started = Date.now();
     try {
-      response = await request(model);
+      response = await request(model, timeout);
       break;
     } catch (error) {
-      if (!shouldTryNextModel(error) || index === models.length - 1) {
+      const status = error instanceof ApiError ? error.status : "no status";
+      console.warn(`Gemini model ${model} failed (${status}) after ${Date.now() - started}ms`);
+      if (!shouldTryNextModel(error) || isLast || deadline - Date.now() < MIN_ATTEMPT_MS) {
         throw error;
       }
-      console.warn(`Gemini model ${model} is unavailable, trying ${models[index + 1]}`);
     }
   }
   if (!response) {

@@ -6,7 +6,7 @@ import { CreateForm } from "./create-form";
 
 export const metadata: Metadata = { title: "Caption a photo · Humor Project" };
 
-// Caption generation may try up to 5 AI models (20 seconds each) when Gemini is busy.
+// Caption generation may try several AI models (up to 100 seconds in total) when Gemini is busy.
 export const maxDuration = 120;
 
 export default async function CreatePage() {
