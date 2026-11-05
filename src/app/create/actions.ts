@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { UPLOADS_BUCKET } from "@/lib/buckets";
-import { buildCaptionPrompt, generateCaptions } from "@/lib/gemini";
+import { finishRequest, runCaptionPipeline } from "@/lib/caption-pipeline";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isVibeId } from "@/lib/vibes";
@@ -68,16 +68,23 @@ export async function createGeneration(
     return { error: "We couldn't read your photo. Please upload it again." };
   }
 
-  const prompt = buildCaptionPrompt(context, vibe);
-  let result: Awaited<ReturnType<typeof generateCaptions>>;
+  // The server reads the prompt chain config and logs the request with the service role;
+  // users have no access to those tables, nor insert access to generations or captions.
+  const admin = createAdminClient();
+  let result: Awaited<ReturnType<typeof runCaptionPipeline>>;
   try {
-    result = await generateCaptions(
-      {
+    result = await runCaptionPipeline({
+      db: admin,
+      image: {
         base64: Buffer.from(await file.arrayBuffer()).toString("base64"),
         mimeType: MIME_TYPES[match[1]],
       },
-      prompt,
-    );
+      vibe,
+      context,
+      userId: user.id,
+      imagePath: path,
+      source: "app",
+    });
   } catch (error) {
     console.error("Caption generation failed", error);
     await removeUpload();
@@ -86,8 +93,12 @@ export async function createGeneration(
     };
   }
 
-  // Users have no insert access to these tables; the server saves the AI's output.
-  const admin = createAdminClient();
+  const fail = async (message: string) => {
+    await finishRequest(admin, result.requestId, result.started, { status: "failed", error: message });
+    await removeUpload();
+    return { error: "We couldn't save your captions. Please try again." };
+  };
+
   const { data: generation, error: generationError } = await admin
     .from("generations")
     .insert({
@@ -95,7 +106,7 @@ export async function createGeneration(
       image_path: path,
       context,
       vibe,
-      prompt,
+      prompt: result.prompt,
       model: result.model,
     })
     .select("id")
@@ -103,8 +114,7 @@ export async function createGeneration(
 
   if (generationError || !generation) {
     console.error("Saving generation failed", generationError);
-    await removeUpload();
-    return { error: "We couldn't save your captions. Please try again." };
+    return fail(`Saving generation failed: ${generationError?.message}`);
   }
 
   const { error: captionsError } = await admin.from("captions").insert(
@@ -118,9 +128,13 @@ export async function createGeneration(
   if (captionsError) {
     console.error("Saving captions failed", captionsError);
     await admin.from("generations").delete().eq("id", generation.id);
-    await removeUpload();
-    return { error: "We couldn't save your captions. Please try again." };
+    return fail(`Saving captions failed: ${captionsError.message}`);
   }
+
+  await finishRequest(admin, result.requestId, result.started, {
+    status: "succeeded",
+    generationId: generation.id,
+  });
 
   revalidatePath("/", "layout");
   redirect(`/p/${generation.id}`);

@@ -14,6 +14,13 @@ export async function GET(request: NextRequest) {
   const providerError =
     searchParams.get("error_description") ?? searchParams.get("error");
   if (providerError) {
+    // The database rejects sign-ups from emails that aren't on the allowed lists
+    // (enforce_signup_allowlist trigger), which Supabase reports as a generic database error.
+    if (/database error saving new user/i.test(providerError)) {
+      return loginWithError(
+        "Sign-ups are limited to Columbia and Barnard email addresses (and a few approved accounts). Try signing in with your school Google account.",
+      );
+    }
     return loginWithError(providerError);
   }
 
